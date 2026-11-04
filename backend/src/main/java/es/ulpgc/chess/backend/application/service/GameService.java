@@ -1,5 +1,5 @@
 package es.ulpgc.chess.backend.application.service;
-
+import es.ulpgc.chess.backend.domain.GameStatus;
 import es.ulpgc.chess.backend.application.GameNotFoundException;
 import es.ulpgc.chess.backend.application.port.in.*;
 import es.ulpgc.chess.backend.application.port.out.GameRepository;
@@ -56,4 +56,12 @@ public class GameService implements CreateGameUseCase, JoinGameUseCase,
         return repository.findById(gameId)
                 .orElseThrow(() -> new GameNotFoundException(gameId));
     }
+
+    @Override
+    public List<Game> listByStatus(GameStatus status) {
+        return repository.findAll().stream()
+                .filter(game -> game.getStatus() == status)
+                .toList();
+    }
+
 }

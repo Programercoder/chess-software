@@ -19,6 +19,17 @@ target/
 *.iml
 *.ipr
 
+### Local db
+data/
+*.mv.db
+*.trace.db
+
+# Frontend
+node_modules/
+
+# Secrets
+.env
+
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/

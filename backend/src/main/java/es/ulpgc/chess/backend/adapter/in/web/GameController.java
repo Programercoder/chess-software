@@ -2,6 +2,8 @@ package es.ulpgc.chess.backend.adapter.in.web;
 
 import es.ulpgc.chess.backend.adapter.in.web.dto.*;
 import es.ulpgc.chess.backend.application.port.in.*;
+import es.ulpgc.chess.backend.domain.Game;
+import es.ulpgc.chess.backend.domain.GameStatus;
 import es.ulpgc.chess.backend.domain.Move;
 import es.ulpgc.chess.backend.domain.Position;
 import org.springframework.http.HttpStatus;
@@ -60,8 +62,20 @@ public class GameController {
     }
 
     @GetMapping
-    public List<GameResponse> list() {
-        return getGame.listAll().stream().map(GameResponse::from).toList();
+    public List<GameResponse> list(@RequestParam(required = false) String status) {
+        List<Game> games;
+        if (status == null || status.isBlank()) {
+            games = getGame.listAll();
+        } else {
+            GameStatus parsed;
+            try {
+                parsed = GameStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid status: " + status);
+            }
+            games = getGame.listByStatus(parsed);
+        }
+        return games.stream().map(GameResponse::from).toList();
     }
 
     private void requireText(String value, String field) {
