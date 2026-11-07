@@ -63,8 +63,24 @@ funcionan abriendo `index.html` con doble clic: hace falta un servidor.
 
 ## Arquitectura de sistemas
 
-TODO (diagrama: frontend, backend, base de datos y contrato de comunicación)
+```
+┌──────────────────┐   HTTP + JSON    ┌──────────────────────┐   JDBC   ┌──────────────┐
+│     Frontend     │ ───────────────► │       Backend        │ ───────► │ H2 (fichero) │
+│ HTML + JS (ES)   │ ◄─────────────── │ Spring Boot, API REST│ ◄─────── │ data/chess   │
+│ puerto 5173      │  polling 1,5 s   │ puerto 8080          │          │ .mv.db       │
+└──────────────────┘                  └──────────────────────┘          └──────────────┘
+```
 
+- **Frontend → backend:** contrato HTTP/JSON descrito en "Contrato de la API".
+  El frontend nunca accede a la base de datos.
+- **Backend → base de datos:** solo a través del puerto `GameRepository`,
+  implementado por `JpaGameRepositoryAdapter`.
+- **Tiempo real:** el frontend consulta `GET /api/games/{id}` cada 1,5 s para
+  ver los movimientos del rival (sin WebSocket).
+- **Responsabilidades:** el backend valida las reglas y registra los
+  movimientos; el frontend solo pinta el estado, orienta el tablero y envía
+  los movimientos que el usuario selecciona.
+- 
 ## Arquitectura del backend (hexagonal)
 
 El dominio y la capa de aplicación no dependen de Spring. Solo los
@@ -91,6 +107,7 @@ dominio, casos de uso y controlador no cambian.
 |---|---|---|
 | UI (adaptador de entrada) | `src/ui/boardView.js` | Pinta el tablero a partir del FEN y notifica los clics |
 | Casos de uso | `src/application/gameUseCases.js` | Crear, unirse, consultar y mover; dependen solo del puerto |
+| Casos de uso | `src/application/replay.js` | Función pura que reconstruye el FEN tras N jugadas (reproductor) |
 | Puerto de servicio | `src/ports/chessServicePort.js` | Contrato que debe cumplir cualquier servicio de ajedrez |
 | Adaptador de comunicación | `src/adapters/httpChessService.js` | Único módulo que usa `fetch` |
 | Composición | `src/main.js` | Conecta adaptador, casos de uso y UI |
@@ -180,7 +197,17 @@ piezas y el turno son significativos; el resto de campos son fijos
 
 ## Idea propia
 
-TODO
+1. **Orientación del tablero según el color.** Quien juega con negras ve sus
+   piezas abajo. Es una decisión de la UI (`boardView.setFlipped`): el
+   backend envía siempre el mismo FEN y no sabe nada de la orientación.
+2. **Reproductor de partidas.** Un botón "Ver histórico" carga los movimientos
+   registrados y permite avanzar y retroceder jugada a jugada. La lógica está
+   en `replay.js`, una función pura sin DOM ni red, que aplica los movimientos
+   registrados sobre la posición inicial.
+
+Encajan con el objetivo del trabajo: la primera mejora la experiencia sin tocar
+el backend y la segunda aprovecha el registro persistente de movimientos
+para consultar partidas pasadas.
 
 ## Verificación
 
@@ -215,13 +242,23 @@ la partida seguía con `status: IN_PROGRESS`, `turn: BLACK` y el movimiento
 
 ## Capturas
 
-<!-- Descomenta cada línea cuando exista la imagen en screenshots/ -->
-<!-- ![Tests en verde](screenshots/backend-tests.png) -->
-<!-- ![Partida tras reiniciar el backend](screenshots/backend-persistencia.png) -->
-<!-- ![Casos de error](screenshots/backend-errores.png) -->
-<!-- ![Tablero](screenshots/frontend-tablero.png) -->
-<!-- ![Sala](screenshots/frontend-sala.png) -->
-<!-- ![Histórico de una partida](screenshots/frontend-historico.png) -->
+### Capturas backend
+![persistencia-backend1.png](screenshots/persistencia-backend1.png)
+![persistencia-backend2.png](screenshots/persistencia-backend2.png)
+![Error-datos-inexistentes.png](screenshots/Error-datos-inexistentes.png)
+![Error-movimiento-ilegal.png](screenshots/Error-movimiento-ilegal.png)
+![Error-partida-inexistente.png](screenshots/Error-partida-inexistente.png)
+![Error-turno-incorrecto.png](screenshots/Error-turno-incorrecto.png)
+![tests-pasados.png](screenshots/tests-pasados.png)
+
+### Capturas frontend
+![frontend-error.png](screenshots/frontend-error.png)
+![frontend-historico.png](screenshots/frontend-historico.png)
+![frontend-sala.png](screenshots/frontend-sala.png)
+![frontend-tablero.png](screenshots/frontend-tablero.png)
+
+
+
 
 ## Límites conocidos
 

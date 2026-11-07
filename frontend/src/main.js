@@ -2,6 +2,7 @@ import { createHttpChessService } from "./adapters/httpChessService.js";
 import { assertChessService } from "./ports/chessServicePort.js";
 import { createGameUseCases } from "./application/gameUseCases.js";
 import { createBoardView } from "./ui/boardView.js";
+import { fenAtStep } from "./application/replay.js";
 
 const service = assertChessService(createHttpChessService("http://localhost:8080"));
 const useCases = createGameUseCases(service);
@@ -11,6 +12,10 @@ let player = null;
 let gameId = null;
 let selected = null;
 let timer = null;
+let replayMoves = null;
+let replayStep = 0;
+let lastTurn = null;
+let currentGame = null;
 
 const board = createBoardView($("board"), onSquareClick);
 
@@ -32,12 +37,17 @@ function describe(game) {
 }
 
 function renderGame(game) {
+  currentGame = game;
   $("roomInfo").textContent =
     "Sala " + game.id + " | Blancas: " + game.whitePlayer +
     " | Negras: " + (game.blackPlayer || "-") + " | Tú: " + player;
   board.setFlipped(game.blackPlayer === player);
   board.render(game.fen);
   $("status").textContent = describe(game);
+  if (game.turn !== lastTurn) {
+    showError("");
+    lastTurn = game.turn;
+  }
 }
 
 async function enterGame(game) {
@@ -50,6 +60,7 @@ async function enterGame(game) {
 }
 
 async function refreshGame() {
+  if (replayMoves) return;
   try {
     renderGame(await useCases.getGame(gameId));
   } catch (e) {
@@ -57,8 +68,18 @@ async function refreshGame() {
   }
 }
 
+function isMyTurn(game) {
+  if (game.status !== "IN_PROGRESS") return false;
+  const turnPlayer = game.turn === "WHITE" ? game.whitePlayer : game.blackPlayer;
+  return turnPlayer === player;
+}
+
 async function onSquareClick(square) {
-  if (!gameId) return;
+  if (!gameId || replayMoves) return;
+  if (currentGame && currentGame.status === "IN_PROGRESS" && !isMyTurn(currentGame)) {
+    showError("No es tu turno");
+    return;
+  }
   if (!selected) {
     selected = square;
     board.setSelected(square);
@@ -107,6 +128,38 @@ $("refreshBtn").addEventListener("click", async () => {
       box.appendChild(b);
     });
   } catch (e) { showError(e.message); }
+});
+
+function showStep() {
+  board.render(fenAtStep(replayMoves, replayStep));
+  $("stepLabel").textContent = " Jugada " + replayStep + " / " + replayMoves.length + " ";
+}
+
+function setStep(n) {
+  replayStep = Math.max(0, Math.min(replayMoves.length, n));
+  showStep();
+}
+
+$("replayBtn").addEventListener("click", async () => {
+  try {
+    showError("");
+    const game = await useCases.getGame(gameId);
+    replayMoves = game.moves;
+    $("replayControls").classList.remove("hidden");
+    $("replayBtn").classList.add("hidden");
+    setStep(replayMoves.length);
+  } catch (e) { showError(e.message); }
+});
+
+$("firstBtn").addEventListener("click", () => setStep(0));
+$("prevBtn").addEventListener("click", () => setStep(replayStep - 1));
+$("nextBtn").addEventListener("click", () => setStep(replayStep + 1));
+$("lastBtn").addEventListener("click", () => setStep(replayMoves.length));
+$("exitReplayBtn").addEventListener("click", async () => {
+  replayMoves = null;
+  $("replayControls").classList.add("hidden");
+  $("replayBtn").classList.remove("hidden");
+  await refreshGame();
 });
 
 board.render("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1");
