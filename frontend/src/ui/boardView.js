@@ -17,11 +17,16 @@ export function parseFen(fen) {
 
 export function createBoardView(container, onSquareClick) {
   let selected = null;
+  let flipped = false;
 
   function render(fen) {
     container.innerHTML = "";
-    parseFen(fen).forEach((row, r) => {
-      row.forEach((piece, c) => {
+    const rows = parseFen(fen);
+    for (let i = 0; i < 8; i++) {
+      for (let j = 0; j < 8; j++) {
+        const r = flipped ? 7 - i : i;
+        const c = flipped ? 7 - j : j;
+        const piece = rows[r][c];
         const name = "abcdefgh"[c] + (8 - r);
         const div = document.createElement("div");
         div.className = "square " + ((r + c) % 2 === 0 ? "light" : "dark")
@@ -29,12 +34,13 @@ export function createBoardView(container, onSquareClick) {
         div.textContent = piece ? SYMBOLS[piece] : "";
         div.addEventListener("click", () => onSquareClick(name));
         container.appendChild(div);
-      });
-    });
+      }
+    }
   }
 
   return {
     render,
     setSelected(name) { selected = name; },
+    setFlipped(value) { flipped = value; },
   };
 }

@@ -5,19 +5,43 @@
     <title>chess-software</title>
     <style>
         body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin: 2rem; }
+        section { margin-bottom: 1rem; text-align: center; }
+        input, button { padding: 0.4rem 0.7rem; font-size: 1rem; }
         #board { display: grid; grid-template-columns: repeat(8, 56px); grid-template-rows: repeat(8, 56px); border: 2px solid #333; }
         .square { width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; font-size: 38px; cursor: pointer; user-select: none; }
         .light { background: #f0d9b5; }
         .dark { background: #b58863; }
         .selected { outline: 3px solid #2a7; outline-offset: -3px; }
-        #status, #error { margin-top: 0.8rem; min-height: 1.2rem; }
-        #error { color: #b00; }
+        #status { margin-top: 0.8rem; min-height: 1.2rem; font-weight: bold; }
+        #error { color: #b00; min-height: 1.2rem; }
+        #openGames button { margin: 0.2rem; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 <h1>Ajedrez</h1>
-<div id="board"></div>
-<div id="status"></div>
+
+<section id="lobby">
+    <div>
+        <input id="playerName" placeholder="Tu nombre">
+    </div>
+    <div style="margin-top:0.6rem">
+        <button id="createBtn">Crear sala</button>
+        <input id="codeInput" placeholder="Código de sala">
+        <button id="joinBtn">Unirse</button>
+    </div>
+    <div style="margin-top:0.6rem">
+        <button id="refreshBtn">Actualizar salas abiertas</button>
+        <div id="openGames"></div>
+    </div>
+</section>
+
+<section id="game" class="hidden">
+    <div id="roomInfo"></div>
+    <div id="board"></div>
+    <div id="status"></div>
+</section>
+
 <div id="error"></div>
 <script type="module" src="./src/main.js"></script>
 </body>
