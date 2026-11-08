@@ -10,13 +10,18 @@ consultar después.
 - JDK 25
 - Maven (o el Maven Wrapper incluido en `backend/`)
 - Spring Boot 4.1.2, Spring Data JPA, base de datos H2 y JUnit 5
-- Para el frontend: Node.js (`npx serve`) o Python (`python -m http.server`)
+- Para el frontend: Node.js 18 o superior (`npx serve` y `npm test`) o Python
+  (`python -m http.server`) solo para servirlo. No hay dependencias externas
+  que instalar.
 
 ## Estructura del repositorio
 
     chess-software/
     ├── backend/        API REST (Spring Boot, arquitectura hexagonal)
     ├── frontend/       Cliente web (HTML + JavaScript con módulos ES)
+    │   ├── src/        Código del cliente
+    │   ├── test/       Tests con node --test
+    │   └── package.json
     ├── screenshots/    Capturas usadas en este README
     └── README.md
 
@@ -61,6 +66,13 @@ Abrir `http://localhost:5173`. El frontend llama al backend en
 `http://localhost:8080` (CORS habilitado en `WebConfig`). Los módulos ES no
 funcionan abriendo `index.html` con doble clic: hace falta un servidor.
 
+Ejecutar los tests del frontend:
+
+```bash
+cd frontend
+npm test
+```
+
 ## Arquitectura de sistemas
 
 ```
@@ -80,7 +92,7 @@ funcionan abriendo `index.html` con doble clic: hace falta un servidor.
 - **Responsabilidades:** el backend valida las reglas y registra los
   movimientos; el frontend solo pinta el estado, orienta el tablero y envía
   los movimientos que el usuario selecciona.
-- 
+
 ## Arquitectura del backend (hexagonal)
 
 El dominio y la capa de aplicación no dependen de Spring. Solo los
@@ -110,10 +122,12 @@ dominio, casos de uso y controlador no cambian.
 | Casos de uso | `src/application/replay.js` | Función pura que reconstruye el FEN tras N jugadas (reproductor) |
 | Puerto de servicio | `src/ports/chessServicePort.js` | Contrato que debe cumplir cualquier servicio de ajedrez |
 | Adaptador de comunicación | `src/adapters/httpChessService.js` | Único módulo que usa `fetch` |
+| Doble de prueba | `src/adapters/mockChessService.js` | Servicio en memoria que cumple el puerto; se usa en `test/` |
+| Tests | `test/gameUseCases.test.js` | Casos de uso y `replay.js` probados sin red |
 | Composición | `src/main.js` | Conecta adaptador, casos de uso y UI |
 
-Como el adaptador es sustituible, se puede usar un doble de prueba
-(`mockChessService.js`) sin tocar los casos de uso ni la UI.
+Como el adaptador es sustituible, los tests usan `mockChessService.js` en
+lugar del adaptador HTTP sin tocar los casos de uso ni la UI.
 
 ## Contrato de la API
 
@@ -211,9 +225,15 @@ para consultar partidas pasadas.
 
 ## Verificación
 
-Automatizada (18 tests): 12 de dominio (`GameTest`), 5 de casos de uso
-(`GameServiceTest`, con el repositorio en memoria como doble de prueba) y el
-test de arranque de Spring (`BackendApplicationTests`).
+Automatizada, backend (18 tests): 12 de dominio (`GameTest`), 5 de casos de
+uso (`GameServiceTest`, con el repositorio en memoria como doble de prueba) y
+el test de arranque de Spring (`BackendApplicationTests`).
+
+Automatizada, frontend (6 tests): `npm test` en `frontend/` ejecuta
+`node --test` con `mockChessService` como doble de prueba del puerto de
+servicio, sin red ni backend. Cubren creación y unión a una sala, lista de
+salas abiertas, rechazo de un movimiento fuera de turno y la reconstrucción
+de posiciones del reproductor.
 
 Comprobaciones manuales con PowerShell, con el backend arrancado:
 
@@ -240,25 +260,49 @@ consultarla con `Invoke-RestMethod http://localhost:8080/api/games/0CCF95`
 la partida seguía con `status: IN_PROGRESS`, `turn: BLACK` y el movimiento
 `e2 → e4`.
 
+Comprobación con dos usuarios: se abrieron dos navegadores (uno normal y uno
+de incógnito) sobre `http://localhost:5173`; un jugador creó la sala, el
+otro se unió con el código y ambos jugaron varias jugadas viendo los
+movimientos del rival por polling. Un movimiento ilegal muestra el mensaje
+de error del backend en pantalla.
+
 ## Capturas
 
+### Capturas obligatorias (frontend)
+
+**Tablero funcionando**
+
+![Tablero](screenshots/frontend-tablero.png)
+
+**Sala**
+
+![Sala](screenshots/frontend-sala.png)
+
+**Histórico registrado** (reproductor de partidas)
+
+![Histórico](screenshots/frontend-historico.png)
+
+**Error mostrado en la interfaz**
+
+![Error en el frontend](screenshots/frontend-error.png)
+
 ### Capturas backend
-![persistencia-backend1.png](screenshots/persistencia-backend1.png)
-![persistencia-backend2.png](screenshots/persistencia-backend2.png)
-![Error-datos-inexistentes.png](screenshots/Error-datos-inexistentes.png)
-![Error-movimiento-ilegal.png](screenshots/Error-movimiento-ilegal.png)
-![Error-partida-inexistente.png](screenshots/Error-partida-inexistente.png)
-![Error-turno-incorrecto.png](screenshots/Error-turno-incorrecto.png)
-![tests-pasados.png](screenshots/tests-pasados.png)
 
-### Capturas frontend
-![frontend-error.png](screenshots/frontend-error.png)
-![frontend-historico.png](screenshots/frontend-historico.png)
-![frontend-sala.png](screenshots/frontend-sala.png)
-![frontend-tablero.png](screenshots/frontend-tablero.png)
+**Persistencia tras reiniciar el backend**
 
+![Persistencia 1](screenshots/persistencia-backend1.png)
+![Persistencia 2](screenshots/persistencia-backend2.png)
 
+**Casos de error**
 
+![Datos inexistentes](screenshots/Error-datos-inexistentes.png)
+![Movimiento ilegal](screenshots/Error-movimiento-ilegal.png)
+![Partida inexistente](screenshots/Error-partida-inexistente.png)
+![Turno incorrecto](screenshots/Error-turno-incorrecto.png)
+
+**Tests**
+
+![Tests pasados](screenshots/tests-pasados.png)
 
 ## Límites conocidos
 
@@ -268,3 +312,4 @@ la partida seguía con `status: IN_PROGRESS`, `turn: BLACK` y el movimiento
 - Sin autenticación: el jugador se identifica solo por el nombre enviado
 - Los movimientos concurrentes sobre la misma partida no están sincronizados
 - El frontend usa polling para ver los movimientos del rival (sin WebSocket)
+- El mock del frontend no valida reglas de ajedrez ni actualiza el tablero; solo imita el contrato del servicio
