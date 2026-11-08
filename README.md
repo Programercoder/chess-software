@@ -5,6 +5,13 @@ crea una partida, comparte su código y un segundo jugador se une. El backend
 valida los movimientos y las partidas quedan registradas y se pueden
 consultar después.
 
+## Objetivo
+
+Diseñar y construir un sistema de salas de ajedrez con dos aplicaciones
+coordinadas (frontend y backend) y un contrato HTTP/JSON explícito entre
+ellas, aplicando arquitectura hexagonal en ambas, con persistencia de las
+partidas y consulta de su histórico.
+
 ## Requisitos
 
 - JDK 25
@@ -14,16 +21,26 @@ consultar después.
   (`python -m http.server`) solo para servirlo. No hay dependencias externas
   que instalar.
 
+
 ## Estructura del repositorio
 
-    chess-software/
-    ├── backend/        API REST (Spring Boot, arquitectura hexagonal)
-    ├── frontend/       Cliente web (HTML + JavaScript con módulos ES)
-    │   ├── src/        Código del cliente
-    │   ├── test/       Tests con node --test
-    │   └── package.json
-    ├── screenshots/    Capturas usadas en este README
-    └── README.md
+```
+chess-software/
+├── backend/        API REST (Spring Boot, arquitectura hexagonal)
+├── frontend/       Cliente web (HTML + JavaScript con módulos ES)
+│   ├── index.html
+│   ├── package.json
+│   ├── src/
+│   │   ├── adapters/     httpChessService.js, mockChessService.js
+│   │   ├── application/  gameUseCases.js, replay.js
+│   │   ├── ports/        chessServicePort.js
+│   │   ├── ui/           boardView.js
+│   │   └── main.js
+│   └── test/             gameUseCases.test.js
+├── screenshots/    Capturas usadas en este README
+├── .gitignore
+└── README.md
+```
 
 ## Ejecutar el backend
 
@@ -65,6 +82,19 @@ npx serve -l 5173             # o: python -m http.server 5173
 Abrir `http://localhost:5173`. El frontend llama al backend en
 `http://localhost:8080` (CORS habilitado en `WebConfig`). Los módulos ES no
 funcionan abriendo `index.html` con doble clic: hace falta un servidor.
+
+
+**Orden de arranque:** primero el backend (puerto 8080) y después el frontend
+(puerto 5173); si el backend no está en marcha, la interfaz muestra
+"Failed to fetch".
+
+**Probar con dos usuarios:**
+1. Abrir `http://localhost:5173` en una ventana normal y en otra de incógnito.
+2. En la primera, escribir un nombre y pulsar "Crear sala"; anotar el código.
+3. En la segunda, escribir otro nombre, pulsar "Actualizar salas abiertas",
+   elegir la sala y pulsar "Unirse".
+4. Mover una pieza en la ventana del jugador con blancas; el rival lo ve en
+   unos 1,5 segundos.
 
 Ejecutar los tests del frontend:
 
@@ -169,6 +199,10 @@ Errores:
 
 - Una sala es una partida: su id de 6 caracteres es el código de sala.
 - Un usuario es solo un nombre de jugador, sin cuenta ni login.
+- No hay tablas `rooms` ni `users`: la sala es la propia partida y el
+  usuario es el nombre guardado en `whitePlayer`/`blackPlayer`. Los
+  movimientos van en la columna `moves`. Es una simplificación
+  proporcionada al alcance del proyecto.
 
 ## Modelo de datos
 
@@ -295,14 +329,18 @@ de error del backend en pantalla.
 
 **Casos de error**
 
-![Datos inexistentes](screenshots/Error-datos-inexistentes.png)
-![Movimiento ilegal](screenshots/Error-movimiento-ilegal.png)
-![Partida inexistente](screenshots/Error-partida-inexistente.png)
-![Turno incorrecto](screenshots/Error-turno-incorrecto.png)
+![Datos inexistentes](screenshots/error-datos-inexistentes.png)
+![Movimiento ilegal](screenshots/error-movimiento-ilegal.png)
+![Partida inexistente](screenshots/error-partida-inexistente.png)
+![Turno incorrecto](screenshots/error-turno-incorrecto.png)
 
 **Tests**
 
 ![Tests pasados](screenshots/tests-pasados.png)
+
+**Tests del frontend**
+
+![Tests del frontend](screenshots/frontend-tests.png)
 
 ## Límites conocidos
 
