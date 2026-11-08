@@ -42,3 +42,24 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Build output
+target/
+out/
+build/
+bin/
+
+# IntelliJ
+.idea/
+*.iml
+
+# Local database (H2)
+data/
+*.mv.db
+*.trace.db
+
+# Frontend
+node_modules/
+
+# Secrets
+.env
