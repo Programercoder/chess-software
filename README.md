@@ -322,6 +322,14 @@ de error del backend en pantalla.
 
 ### Capturas backend
 
+**Crear sala y unirse (API)**
+
+![Crear partida y unirse desde el backend][crear-sala-y-unirse.png](screenshots/crear-sala-y-unirse.png)
+
+**Registro de movimientos desde el backend**
+
+![Movimientos](screenshots/movimientos.png)
+
 **Persistencia tras reiniciar el backend**
 
 ![Persistencia 1](screenshots/persistencia-backend1.png)
