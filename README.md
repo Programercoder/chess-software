@@ -20,6 +20,11 @@ partidas y consulta de su histórico.
 - Para el frontend: Node.js 18 o superior (`npx serve` y `npm test`) o Python
   (`python -m http.server`) solo para servirlo. No hay dependencias externas
   que instalar.
+- Variable `JAVA_HOME` apuntando a un JDK 25 (necesaria para `mvnw` desde
+    terminal; IntelliJ no la necesita). En PowerShell:
+    `$env:JAVA_HOME = "C:\ruta\al\jdk-25"`.
+
+- 
 
 
 ## Estructura del repositorio
@@ -324,7 +329,7 @@ de error del backend en pantalla.
 
 **Crear sala y unirse (API)**
 
-![Crear partida y unirse desde el backend][crear-sala-y-unirse.png](screenshots/crear-sala-y-unirse.png)
+![Crear partida y unirse desde el backend](screenshots/crear-sala-y-unirse.png)
 
 **Registro de movimientos desde el backend**
 
@@ -359,3 +364,6 @@ de error del backend en pantalla.
 - Los movimientos concurrentes sobre la misma partida no están sincronizados
 - El frontend usa polling para ver los movimientos del rival (sin WebSocket)
 - El mock del frontend no valida reglas de ajedrez ni actualiza el tablero; solo imita el contrato del servicio
+- El frontend apunta a `http://localhost:8080` (definido en `main.js`).
+- No se detecta la desconexión de un jugador: la partida queda abierta y
+    se puede reanudar al volver, porque el estado está persistido.
